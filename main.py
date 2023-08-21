@@ -75,4 +75,4 @@ def generate_meta():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=DEFAULT_PORT)
+    app.run(debug=True)
