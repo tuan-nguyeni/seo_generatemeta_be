@@ -3,7 +3,7 @@ API_KEY_NAME = "openai_key"
 MODEL_NAME = "gpt-3.5-turbo-16k"
 
 # SERVER
-DEFAULT_PORT = 5002
+DEFAULT_PORT = 5000
 
 # PROMPT SETTINGS
 PROMPT_FORMAT_TITLE = "I want to generate a title for a website. It should be optimized for SEO and has " \
