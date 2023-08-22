@@ -36,45 +36,48 @@ def generate_meta():
     language = request.json['language']
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Timeout error'}), 408
     except requests.exceptions.TooManyRedirects:
-        return jsonify({'title': 'error: Too many redirects. Please check the URL and try again. Error code: 400', 'description': ''})
+        return jsonify({'error': 'Too many redirects. Please check the URL.'}), 400
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'URL fetching error. Your URL might be wrong', 'message': str(e)}), 400
+
     soup = BeautifulSoup(response.text, 'html.parser')
     content = " ".join([p.text for p in soup.find_all('p')])
 
-    print("url is " + url)
-    print("keyword is " + keyword)
-    print("content is " + content)
+    try:
+        prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
+        messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
+        messages.append({"role": "user", "content": prompt})
 
-    # Here you can implement logic to generate the title and meta based on the keyword and content.
+        response = openai.ChatCompletion.create(
+            model=MODEL_NAME,
+            messages=messages
+        )
+        title = response.choices[0].message.content
 
-    prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
+        prompt = PROMPT_FORMAT_METADESCRIPTION.format(language=language)
+        messages.append({"role": "user", "content": prompt})
 
-    messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
-    messages.append({"role": "user", "content": prompt})
+        response = openai.ChatCompletion.create(
+            model=MODEL_NAME,
+            messages=messages
+        )
+        meta_description = response.choices[0].message.content
 
-    response = openai.ChatCompletion.create(
-        model=MODEL_NAME,
-        messages=messages
-    )
-
-    title = response.choices[0].message.content
-
-    prompt = PROMPT_FORMAT_METADESCRIPTION.format(language=language)
-
-    messages.append({"role": "user", "content": prompt})
-
-    response = openai.ChatCompletion.create(
-        model=MODEL_NAME,
-        messages=messages
-    )
-
-    meta_description = response.choices[0].message.content
+    except openai.error.OpenAIError as e:
+        return jsonify({'error': 'OpenAI service error', 'message': str(e)}), 500
 
     return jsonify({'title': title, 'description': meta_description})
 
 
+
 if __name__ == '__main__':
+    #for production:
     port = int(os.environ.get("PORT", DEFAULT_PORT))
     app.run(host='0.0.0.0', port=port)
-
+    #For localhost:
+    #app.run(debug=True, port=DEFAULT_PORT)
