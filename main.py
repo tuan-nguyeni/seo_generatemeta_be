@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 from flask_cors import CORS
 from constants import API_KEY_NAME, MODEL_NAME, DEFAULT_PORT, PROMPT_FORMAT_TITLE, SYSTEM_MESSAGE, \
     PROMPT_FORMAT_METADESCRIPTION
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -96,8 +98,9 @@ def generate_meta():
 
 
 if __name__ == '__main__':
-    # for production:
-    port = int(os.environ.get("PORT", DEFAULT_PORT))
-    app.run(host='0.0.0.0', port=port)
-    # For localhost:
-    #app.run(debug=True, port=DEFAULT_PORT)
+    if os.getenv("FLASK_ENV") == "development":
+        app.run(debug=True, port=DEFAULT_PORT)
+    else:
+        port = int(os.environ.get("PORT", DEFAULT_PORT))
+        app.run(host='0.0.0.0', port=port)
+

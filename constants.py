@@ -12,6 +12,6 @@ PROMPT_FORMAT_TITLE = "I want to generate a title for a website. It should be op
 PROMPT_FORMAT_METADESCRIPTION = "Generate a meta description. Only meta description and nothing more. It should be optimized for SEO and " \
                                 "has less than 120 characters. The generated meta description" \
                                 " should be written in {language}. The generated meta description is based on the above title, keywords, and content." \
-                                "The content and keywords might be empty, but that should not be a problem." \
+                                "if the content or keywords are empty, create some suggestions anyway" \
                                 " The format: 'meta description' "
 SYSTEM_MESSAGE = "You are an intelligent SEO Consultant."
