@@ -95,7 +95,7 @@ def generate_meta():
 
 if __name__ == '__main__':
     #for production:
-    #port = int(os.environ.get("PORT", DEFAULT_PORT))
-    #app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", DEFAULT_PORT))
+    app.run(host='0.0.0.0', port=port)
     #For localhost:
-    app.run(debug=True, port=DEFAULT_PORT)
+    #app.run(debug=True, port=DEFAULT_PORT)
