@@ -44,6 +44,7 @@ def generate_meta():
     keyword = request.json['keyword']
     url = ensure_valid_url(request.json['url'])
     language = request.json['language']
+    excluded_words = request.json['excluded_words']
     content = ""
 
     # Only fetch URL content if it's not empty
@@ -61,7 +62,7 @@ def generate_meta():
             return jsonify({'error': 'URL fetching error. Your URL might be wrong.', 'message': str(e)}), 400
 
     # Checking tokens and possibly breaking the content
-    full_prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
+    full_prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language, excluded_words=excluded_words)
     token_count = len(encoding.encode(full_prompt))
     print(f"The text contains {token_count} tokens.")
 
@@ -82,7 +83,7 @@ def generate_meta():
         )
         title = response.choices[0].message.content
 
-        prompt = PROMPT_FORMAT_METADESCRIPTION.format(language=language)
+        prompt = PROMPT_FORMAT_METADESCRIPTION.format(language=language,excluded_words=excluded_words)
         messages.append({"role": "user", "content": prompt})
 
         response = openai.ChatCompletion.create(
