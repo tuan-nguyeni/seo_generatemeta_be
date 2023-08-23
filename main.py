@@ -20,6 +20,8 @@ HEADERS = {
 
 
 def ensure_valid_url(url):
+    if len(url) == 0:
+        return url
     # Ensure URL starts with http:// or https://
     if not url.startswith(('http://', 'https://')):
         if not url.startswith('www.'):
@@ -40,19 +42,21 @@ def generate_meta():
     keyword = request.json['keyword']
     url = ensure_valid_url(request.json['url'])
     language = request.json['language']
+    content = ""
 
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-    except requests.exceptions.Timeout:
-        return jsonify({'error': 'Timeout error'}), 408
-    except requests.exceptions.TooManyRedirects:
-        return jsonify({'error': 'Too many redirects. Please check the URL.'}), 400
-    except requests.exceptions.RequestException as e:
-        return jsonify({'error': 'URL fetching error. Your URL might be wrong or empty', 'message': str(e)}), 400
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    content = " ".join([p.text for p in soup.find_all('p')])
+    # Only fetch URL content if it's not empty
+    if url:
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            content = " ".join([p.text for p in soup.find_all('p')])
+        except requests.exceptions.Timeout:
+            return jsonify({'error': 'Timeout error'}), 408
+        except requests.exceptions.TooManyRedirects:
+            return jsonify({'error': 'Too many redirects. Please check the URL.'}), 400
+        except requests.exceptions.RequestException as e:
+            return jsonify({'error': 'URL fetching error. Your URL might be wrong.', 'message': str(e)}), 400
 
     # Checking tokens and possibly breaking the content
     full_prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
@@ -63,7 +67,6 @@ def generate_meta():
 
     if token_count > MAX_TOKENS:
         # Breaking the content and sending in batches.
-        # Note: This is a simple split. For better results, split at sentences or paragraphs.
         split_content = [full_prompt[i:i + MAX_TOKENS] for i in range(0, len(full_prompt), MAX_TOKENS)]
         for partial_prompt in split_content:
             messages.append({"role": "user", "content": partial_prompt})
@@ -92,10 +95,9 @@ def generate_meta():
     return jsonify({'title': title, 'description': meta_description})
 
 
-
 if __name__ == '__main__':
-    #for production:
+    # for production:
     port = int(os.environ.get("PORT", DEFAULT_PORT))
     app.run(host='0.0.0.0', port=port)
-    #For localhost:
+    # For localhost:
     #app.run(debug=True, port=DEFAULT_PORT)
