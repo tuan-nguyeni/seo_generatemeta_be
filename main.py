@@ -43,7 +43,7 @@ def generate_meta():
     except requests.exceptions.TooManyRedirects:
         return jsonify({'error': 'Too many redirects. Please check the URL.'}), 400
     except requests.exceptions.RequestException as e:
-        return jsonify({'error': 'URL fetching error. Your URL might be wrong', 'message': str(e)}), 400
+        return jsonify({'error': 'URL fetching error. Your URL might be wrong or empty', 'message': str(e)}), 400
 
     soup = BeautifulSoup(response.text, 'html.parser')
     content = " ".join([p.text for p in soup.find_all('p')])
