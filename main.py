@@ -2,6 +2,7 @@
 import os
 
 import openai
+import tiktoken
 from flask import Flask, request, jsonify
 import requests
 from bs4 import BeautifulSoup
@@ -11,8 +12,11 @@ from constants import API_KEY_NAME, MODEL_NAME, DEFAULT_PORT, PROMPT_FORMAT_TITL
 
 app = Flask(__name__)
 CORS(app)
-
 openai.api_key = os.getenv(API_KEY_NAME)
+MAX_TOKENS = 16000
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 
 def ensure_valid_url(url):
@@ -31,12 +35,14 @@ def ensure_valid_url(url):
 
 @app.route('/generate-meta', methods=['POST'])
 def generate_meta():
+    encoding = tiktoken.encoding_for_model(MODEL_NAME)
+
     keyword = request.json['keyword']
     url = ensure_valid_url(request.json['url'])
     language = request.json['language']
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=HEADERS, timeout=10)
         response.raise_for_status()
     except requests.exceptions.Timeout:
         return jsonify({'error': 'Timeout error'}), 408
@@ -48,11 +54,23 @@ def generate_meta():
     soup = BeautifulSoup(response.text, 'html.parser')
     content = " ".join([p.text for p in soup.find_all('p')])
 
-    try:
-        prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
-        messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
-        messages.append({"role": "user", "content": prompt})
+    # Checking tokens and possibly breaking the content
+    full_prompt = PROMPT_FORMAT_TITLE.format(keyword=keyword, content=content, language=language)
+    token_count = len(encoding.encode(full_prompt))
+    print(f"The text contains {token_count} tokens.")
 
+    messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
+
+    if token_count > MAX_TOKENS:
+        # Breaking the content and sending in batches.
+        # Note: This is a simple split. For better results, split at sentences or paragraphs.
+        split_content = [full_prompt[i:i + MAX_TOKENS] for i in range(0, len(full_prompt), MAX_TOKENS)]
+        for partial_prompt in split_content:
+            messages.append({"role": "user", "content": partial_prompt})
+    else:
+        messages.append({"role": "user", "content": full_prompt})
+
+    try:
         response = openai.ChatCompletion.create(
             model=MODEL_NAME,
             messages=messages
@@ -77,7 +95,7 @@ def generate_meta():
 
 if __name__ == '__main__':
     #for production:
-    port = int(os.environ.get("PORT", DEFAULT_PORT))
-    app.run(host='0.0.0.0', port=port)
+    #port = int(os.environ.get("PORT", DEFAULT_PORT))
+    #app.run(host='0.0.0.0', port=port)
     #For localhost:
-    #app.run(debug=True, port=DEFAULT_PORT)
+    app.run(debug=True, port=DEFAULT_PORT)
