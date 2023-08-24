@@ -9,7 +9,7 @@ DEFAULT_PORT = 5002
 PROMPT_FORMAT_TITLE = "I want to generate a title for a website. \n" \
                       "It should be optimized for SEO and has less than 45 characters. \n" \
                       "The title should be written in: {language}. \n\n" \
-                      " This is the keyword: {keyword}  \n " \
+                      " This is the keyword. They must be included into my title: {keyword}  \n " \
                       "this is the content, which might be empty: {content} \n\n" \
                       "Generate the result without the words: {excluded_words}. \n\n"
 PROMPT_FORMAT_METADESCRIPTION = "Generate a meta description. " \
